@@ -1,18 +1,19 @@
-import React, { JSX, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { Message } from "@/types";
-import { chatApi, useGetMessagesQuery, useSendMessageMutation, useSubscribeToChatQuery } from '@/store/chatApi';
+import { useGetMessagesQuery, useSendMessageMutation, useSubscribeToChatQuery } from '@/store/chatApi';
 import {
     Box,
     Typography,
     TextField,
     Button,
-} from "@mui/material";
+} from '@mui/material';
 import {
     List,
     useListRef,
 } from "react-window";
 import { useCommonState } from "@utils";
-import { MessageRow, ErrorSnackbar, PageLoader } from '@ui';
+import { MessageRow, ErrorSnackbar, PageLoader, Icon, LiquidGlassButton } from '@ui';
+
 
 type MessageWithFlags = Message & { isOptimistic?: boolean };
 
@@ -57,11 +58,11 @@ export const DialogScreen: React.FC = () => {
         }
     }, [messagesFromStore, selectedChatId]);
 
+    // при смене чата вниз
     useEffect(() => {
         if (!selectedChatId) return;
         if (!allMessages.length) return;
 
-        // при смене чата вниз
         setIsNearBottom(true);
 
         requestAnimationFrame(() => {
@@ -72,6 +73,7 @@ export const DialogScreen: React.FC = () => {
         });
     }, [selectedChatId]);
 
+    // чтобы не дёргался чат при получении сообщения
     useEffect(() => {
         if (!allMessages.length) return;
         if (!isNearBottom) return;
@@ -83,6 +85,17 @@ export const DialogScreen: React.FC = () => {
             });
         });
     }, [allMessages.length, isNearBottom]);
+
+    const scrollToBottom = () => {
+        if (!allMessages.length) return;
+
+        listRef.current?.scrollToRow({
+            index: allMessages.length - 1,
+            align: "end",
+        });
+
+        setIsNearBottom(true);
+    };
 
     const handleSend = async () => {
         const text = inputValue.trim();
@@ -169,6 +182,21 @@ export const DialogScreen: React.FC = () => {
                         listRef={listRef}
                         onScroll={handleScroll}
                     />
+                )}
+
+                {!isNearBottom && (
+                    <LiquidGlassButton
+                        onClick={scrollToBottom}
+                        sx={{
+                            position: "absolute",
+                            bottom: 35,
+                            right: 35,
+                            zIndex: 2,
+                            paddingTop: 2,
+                        }}
+                    >
+                        <Icon name="arrow-chevron-down" />
+                    </LiquidGlassButton>
                 )}
             </Box>
 

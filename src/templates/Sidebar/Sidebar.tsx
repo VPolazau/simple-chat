@@ -8,7 +8,6 @@ import { Icon, Separator } from '@ui';
 import { useCommonState, useDeviceMedia } from '@utils';
 
 import './Sidebar.styles.scss'
-import cn from 'classnames';
 import { ChatList } from '@/templates';
 
 export const Sidebar = () => {
