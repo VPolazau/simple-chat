@@ -18,17 +18,17 @@ type MessageWithFlags = Message & { isOptimistic?: boolean };
 
 export const DialogScreen: React.FC = () => {
     const { selectedChatId, isMessagesLoading, isError, messagesByChatId } = useCommonState();
+    const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
+    useGetMessagesQuery(selectedChatId!, { skip: !selectedChatId });
+    useSubscribeToChatQuery(selectedChatId!, { skip: !selectedChatId });
 
     const messagesFromStore = selectedChatId
         ? messagesByChatId[selectedChatId] ?? []
         : [];
 
     const [inputValue, setInputValue] = useState("");
+    const [isNearBottom, setIsNearBottom] = useState(true);
     const [pendingMessages, setPendingMessages] = useState<MessageWithFlags[]>([]);
-
-    const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
-    useGetMessagesQuery(selectedChatId!, { skip: !selectedChatId });
-    useSubscribeToChatQuery(selectedChatId!, { skip: !selectedChatId });
 
     const listRef = useListRef(null);
 
@@ -58,17 +58,31 @@ export const DialogScreen: React.FC = () => {
     }, [messagesFromStore, selectedChatId]);
 
     useEffect(() => {
+        if (!selectedChatId) return;
         if (!allMessages.length) return;
 
-        const timeout = setTimeout(() => {
+        // при смене чата вниз
+        setIsNearBottom(true);
+
+        requestAnimationFrame(() => {
             listRef.current?.scrollToRow({
                 index: allMessages.length - 1,
                 align: "end",
             });
-        }, 0);
+        });
+    }, [selectedChatId]);
 
-        return () => clearTimeout(timeout);
-    }, [allMessages.length, selectedChatId, listRef]);
+    useEffect(() => {
+        if (!allMessages.length) return;
+        if (!isNearBottom) return;
+
+        requestAnimationFrame(() => {
+            listRef.current?.scrollToRow({
+                index: allMessages.length - 1,
+                align: "end",
+            });
+        });
+    }, [allMessages.length, isNearBottom]);
 
     const handleSend = async () => {
         const text = inputValue.trim();
@@ -100,6 +114,20 @@ export const DialogScreen: React.FC = () => {
         }
     };
 
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const target = e.currentTarget;
+
+        const { scrollTop, scrollHeight, clientHeight } = target;
+
+        const distanceToBottom =
+            scrollHeight - (scrollTop + clientHeight);
+
+        setIsNearBottom((prev) => {
+            const next = distanceToBottom < 120;
+            return prev === next ? prev : next;
+        });
+    };
+
     if (!selectedChatId) {
         return (
             <Box
@@ -118,12 +146,13 @@ export const DialogScreen: React.FC = () => {
     return (
         <Box display="flex" flexDirection="column" height="100%">
             <Box
-                flex={1}
+                flex="1 1 auto"
                 minHeight={0}
                 px={2}
                 pt={2}
                 pb={1}
                 position="relative"
+                overflow="hidden"
             >
 
                 <PageLoader isLoading={isMessagesLoading && !allMessages.length} />
@@ -138,6 +167,7 @@ export const DialogScreen: React.FC = () => {
                         rowProps={{ items: allMessages }}
                         overscanCount={4}
                         listRef={listRef}
+                        onScroll={handleScroll}
                     />
                 )}
             </Box>
