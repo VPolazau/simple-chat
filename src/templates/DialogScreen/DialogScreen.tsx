@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { Message } from "@/types";
 import { useGetMessagesQuery, useSendMessageMutation, useSubscribeToChatQuery } from '@/store/chatApi';
 import {
@@ -13,6 +13,7 @@ import {
 } from "react-window";
 import { useCommonState } from "@utils";
 import { MessageRow, ErrorSnackbar, PageLoader, Icon, LiquidGlassButton } from '@ui';
+import { DialogHeader } from '@/templates';
 
 
 type MessageWithFlags = Message & { isOptimistic?: boolean };
@@ -38,6 +39,23 @@ export const DialogScreen: React.FC = () => {
         [messagesFromStore, pendingMessages]
     );
 
+    const scrollToLast = () => {
+        const list = listRef.current;
+        if (!list) return;
+
+        const index = allMessages.length - 1;
+        if (index < 0) return;
+
+        try {
+            list.scrollToRow({
+                index,
+                align: "end",
+            });
+        } catch (e) {
+            // react-window List ещё не готов
+        }
+    };
+
     useEffect(() => {
         if (!selectedChatId) return;
 
@@ -59,41 +77,21 @@ export const DialogScreen: React.FC = () => {
     }, [messagesFromStore, selectedChatId]);
 
     // при смене чата вниз
-    useEffect(() => {
-        if (!selectedChatId) return;
-        if (!allMessages.length) return;
-
+    useLayoutEffect(() => {
+        if (!selectedChatId || !allMessages.length) return;
         setIsNearBottom(true);
-
-        requestAnimationFrame(() => {
-            listRef.current?.scrollToRow({
-                index: allMessages.length - 1,
-                align: "end",
-            });
-        });
+        requestAnimationFrame(scrollToLast);
     }, [selectedChatId]);
 
     // чтобы не дёргался чат при получении сообщения
-    useEffect(() => {
-        if (!allMessages.length) return;
-        if (!isNearBottom) return;
-
-        requestAnimationFrame(() => {
-            listRef.current?.scrollToRow({
-                index: allMessages.length - 1,
-                align: "end",
-            });
-        });
+    useLayoutEffect(() => {
+        if (!allMessages.length || !isNearBottom) return;
+        requestAnimationFrame(scrollToLast);
     }, [allMessages.length, isNearBottom]);
 
     const scrollToBottom = () => {
         if (!allMessages.length) return;
-
-        listRef.current?.scrollToRow({
-            index: allMessages.length - 1,
-            align: "end",
-        });
-
+        scrollToLast();
         setIsNearBottom(true);
     };
 
@@ -112,6 +110,7 @@ export const DialogScreen: React.FC = () => {
             isOptimistic: true,
         };
 
+        scrollToBottom();
         setPendingMessages((prev) => [...prev, optimisticMessage]);
         setInputValue("");
 
@@ -158,12 +157,11 @@ export const DialogScreen: React.FC = () => {
 
     return (
         <Box display="flex" flexDirection="column" height="100%">
+            <DialogHeader />
             <Box
                 flex="1 1 auto"
                 minHeight={0}
                 px={2}
-                pt={2}
-                pb={1}
                 position="relative"
                 overflow="hidden"
             >
