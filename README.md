@@ -68,7 +68,7 @@
     ├── app/                 # Next.js App Router (layouts, pages)
     ├── context/             # React Context (MediaQueryProvider)
     ├── store/               # Redux Toolkit store, slices, RTK Query API
-    ├── templates/           # Крупные составные компоненты (Sidebar, ChatList, DialogScreen)
+    ├── templates/           # Крупные составные компоненты завязанные на состоянии (Sidebar, ChatList, DialogScreen)
     ├── ui/components/       # Переиспользуемые UI-компоненты
     ├── utils/               # Хуки, helpers, constants
 ```
@@ -116,9 +116,9 @@
 ### Покрытие тестами
 
 - **Lines:** ~96%
-- **Statements:** ~95%
-- **Functions:** ~88%
-- **Branches:** ~83%
+- **Statements:** ~97%
+- **Functions:** ~89%
+- **Branches:** ~85%
 
 Протестированы:
 - UI-компоненты

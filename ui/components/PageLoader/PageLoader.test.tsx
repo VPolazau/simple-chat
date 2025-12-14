@@ -10,6 +10,6 @@ describe('PageLoader', () => {
 
     it('hides loader when isLoading is false', () => {
         render(<PageLoader isLoading={false} />);
-        expect(screen.getByTestId('loader')).not.toBeVisible();
+        expect(screen.queryByTestId('loader')).toBeNull();
     });
 });

@@ -4,4 +4,5 @@ export interface IChatListItemProps {
     avatar: string;
     lastMessage: string;
     onClick?: (id: string) => void;
+    selected: boolean;
 }

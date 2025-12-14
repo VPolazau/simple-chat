@@ -7,6 +7,7 @@ export const PageLoader: FC<IPageLoader> = ({ isLoading }) => {
         <Backdrop
             sx={(theme) => ({ color: '#fff', zIndex: theme.zIndex.drawer + 1 })}
             open
+            data-testid="loader"
         >
             <CircularProgress color="inherit" />
         </Backdrop>

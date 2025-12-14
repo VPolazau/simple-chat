@@ -23,9 +23,6 @@ export const LiquidGlassButton: FC<ILiquidGlassButtonProps> = ({children, onClic
                background: "rgba(255, 255, 255, 0.55)",
                filter: "brightness(1.05)",
            },
-           "&:active": {
-               transform: "translateX(-50%) scale(0.96)",
-           },
            display: 'flex',
            alignItems: 'center',
            justifyContent: 'center',

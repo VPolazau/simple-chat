@@ -3,12 +3,10 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import * as utils from "@utils";
 
-// ВАЖНО: мок MUI Drawer ДО импорта Sidebar
 jest.mock("@mui/material", () => {
     const actual = jest.requireActual("@mui/material");
     return {
         ...actual,
-        // Делаем Drawer "чистым": children видны только когда open=true
         Drawer: ({ open, children }: any) => (open ? <div data-testid="drawer">{children}</div> : null),
     };
 });
@@ -110,7 +108,6 @@ describe("Sidebar", () => {
 
         const { container } = render(<Sidebar />);
 
-        // кликаем по бургеру через class, чтобы не зависеть от кол-ва кнопок
         const burgerBtn = container.querySelector(".sidebar__burger-btn") as HTMLElement;
         expect(burgerBtn).toBeInTheDocument();
 
@@ -125,7 +122,7 @@ describe("Sidebar", () => {
         (utils.useDeviceMedia as jest.Mock).mockReturnValue({ isDesktop: false });
         (utils.useCommonState as jest.Mock).mockReturnValue({
             chats: mockChats,
-            selectedChatId: null, // изначально открыт
+            selectedChatId: null,
         });
 
         const { container } = render(<Sidebar />);

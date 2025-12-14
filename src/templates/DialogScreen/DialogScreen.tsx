@@ -1,5 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import type { Message } from "@/types";
+import React from 'react';
 import { useGetMessagesQuery, useSendMessageMutation, useSubscribeToChatQuery } from '@/store/chatApi';
 import {
     Box,
@@ -7,20 +6,15 @@ import {
     TextField,
     Button,
 } from '@mui/material';
-import {
-    List,
-    useListRef,
-} from "react-window";
+import { List } from "react-window";
 import { useCommonState } from "@utils";
 import { MessageRow, ErrorSnackbar, PageLoader, Icon, LiquidGlassButton } from '@ui';
 import { DialogHeader } from '@/templates';
-
-
-type MessageWithFlags = Message & { isOptimistic?: boolean };
+import { useDialogScroll, useOptimisticSend } from './hooks';
 
 export const DialogScreen: React.FC = () => {
     const { selectedChatId, isMessagesLoading, isError, messagesByChatId } = useCommonState();
-    const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
+
     useGetMessagesQuery(selectedChatId!, { skip: !selectedChatId });
     useSubscribeToChatQuery(selectedChatId!, { skip: !selectedChatId });
 
@@ -28,116 +22,19 @@ export const DialogScreen: React.FC = () => {
         ? messagesByChatId[selectedChatId] ?? []
         : [];
 
-    const [inputValue, setInputValue] = useState("");
-    const [isNearBottom, setIsNearBottom] = useState(true);
-    const [pendingMessages, setPendingMessages] = useState<MessageWithFlags[]>([]);
-
-    const listRef = useListRef(null);
-
-    const allMessages: MessageWithFlags[] = useMemo(
-        () => [...messagesFromStore, ...pendingMessages],
-        [messagesFromStore, pendingMessages]
-    );
-
-    const scrollToLast = () => {
-        const list = listRef.current;
-        if (!list) return;
-
-        const index = allMessages.length - 1;
-        if (index < 0) return;
-
-        try {
-            list.scrollToRow({
-                index,
-                align: "end",
-            });
-        } catch (e) {
-            // react-window List ещё не готов
-        }
-    };
-
-    useEffect(() => {
-        if (!selectedChatId) return;
-
-        const last = messagesFromStore[messagesFromStore.length - 1];
-        if (!last) return;
-
-        if (last.author === "me") {
-            setPendingMessages((prev) => {
-                const idx = prev.findIndex(
-                    (m) => m.chatId === last.chatId && m.author === "me" && m.text === last.text
-                );
-                if (idx === -1) return prev;
-
-                const copy = prev.slice();
-                copy.splice(idx, 1);
-                return copy;
-            });
-        }
-    }, [messagesFromStore, selectedChatId]);
-
-    // при смене чата вниз
-    useLayoutEffect(() => {
-        if (!selectedChatId || !allMessages.length) return;
-        setIsNearBottom(true);
-        requestAnimationFrame(scrollToLast);
-    }, [selectedChatId]);
-
-    // чтобы не дёргался чат при получении сообщения
-    useLayoutEffect(() => {
-        if (!allMessages.length || !isNearBottom) return;
-        requestAnimationFrame(scrollToLast);
-    }, [allMessages.length, isNearBottom]);
-
-    const scrollToBottom = () => {
-        if (!allMessages.length) return;
-        scrollToLast();
-        setIsNearBottom(true);
-    };
+    const {inputValue, setInputValue, pendingMessages, handleSendMessageRequest, isSending} = useOptimisticSend(messagesFromStore)
+    const {listRef, isNearBottom, scrollToBottom, handleScroll, allMessages} = useDialogScroll(messagesFromStore, pendingMessages);
 
     const handleSend = async () => {
-        const text = inputValue.trim();
-        if (!text || !selectedChatId) return;
-
-        const tempId = `temp-${Date.now()}`;
-
-        const optimisticMessage: MessageWithFlags = {
-            id: tempId,
-            chatId: selectedChatId,
-            author: "me",
-            text,
-            createdAt: new Date().toISOString(),
-            isOptimistic: true,
-        };
-
         scrollToBottom();
-        setPendingMessages((prev) => [...prev, optimisticMessage]);
-        setInputValue("");
+        await handleSendMessageRequest();
+    }
 
-        try {
-            await sendMessage({ chatId: selectedChatId, text }).unwrap();
-            setPendingMessages((prev) =>
-                prev.filter((m) => m.id !== tempId)
-            );
-        } catch {
-            setPendingMessages((prev) =>
-                prev.filter((m) => m.id !== tempId)
-            );
-        }
-    };
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+        if (e.key !== "Enter" || e.shiftKey) return;
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const target = e.currentTarget;
-
-        const { scrollTop, scrollHeight, clientHeight } = target;
-
-        const distanceToBottom =
-            scrollHeight - (scrollTop + clientHeight);
-
-        setIsNearBottom((prev) => {
-            const next = distanceToBottom < 120;
-            return prev === next ? prev : next;
-        });
+        e.preventDefault();
+        handleSend();
     };
 
     if (!selectedChatId) {
@@ -212,12 +109,7 @@ export const DialogScreen: React.FC = () => {
                     placeholder="Введите сообщение…"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSend();
-                        }
-                    }}
+                    onKeyDown={handleKeyDown}
                 />
                 <Button
                     variant="contained"
