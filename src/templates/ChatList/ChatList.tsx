@@ -6,11 +6,19 @@ import { Typography } from '@mui/material';
 import { Separator } from '@ui';
 import { useDispatch } from 'react-redux';
 import { chatActions } from '@/store/chatSlice';
+import { callIfExist } from '@utils';
 
 export const ChatList: FC<IChatListProps> = ({
-    chats
+    chats,
+    onCloseDrawer,
 }) => {
     const dispatch = useDispatch();
+
+    const handleClick = (id: string) => {
+        dispatch(chatActions.setSelectedChatId(id));
+        callIfExist(onCloseDrawer);
+    }
+
     return (
         <>
             <Typography variant="h5" sx={{ margin: '10px auto' }}>Чаты</Typography>
@@ -22,7 +30,7 @@ export const ChatList: FC<IChatListProps> = ({
                     name={name}
                     avatar={avatar}
                     lastMessage={lastMessage}
-                    onClick={(id) => dispatch(chatActions.setSelectedChatId(id))}
+                    onClick={handleClick}
                 />
             ))}
         </>

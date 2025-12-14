@@ -26,7 +26,7 @@ export const Sidebar = () => {
                         <Icon name="burger" />
                     </IconButton>
                     <Drawer anchor="left" open={open} onClose={toggleDrawer} className='sidebar__drawer'>
-                        <ChatList chats={chats} />
+                        <ChatList chats={chats} onCloseDrawer={toggleDrawer} />
                         <IconButton onClick={toggleDrawer} className="back-btn">
                             <Icon name="arrow-chevron-down" rotate={90} />
                         </IconButton>
